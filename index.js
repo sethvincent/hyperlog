@@ -8,7 +8,7 @@ var mutexify = require('mutexify')
 var cuid = require('cuid')
 var logs = require('level-logs')
 var events = require('events')
-var util = require('util')
+var inherits = require('inherits')
 var enumerate = require('level-enumerate')
 var replicate = require('./lib/replicate')
 var messages = require('./lib/messages')
@@ -83,7 +83,7 @@ var Hyperlog = function (db, opts) {
   })
 }
 
-util.inherits(Hyperlog, events.EventEmitter)
+inherits(Hyperlog, events.EventEmitter)
 
 // Call callback 'cb' once the hyperlog is ready for use (knows some
 // fundamental properties about itself from the leveldb). If it's already
