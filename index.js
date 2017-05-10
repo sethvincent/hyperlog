@@ -5,7 +5,7 @@ var through = require('through2')
 var pump = require('pump')
 var from = require('from2')
 var mutexify = require('mutexify')
-var cuid = require('cuid')
+var uuid = require('uuid')
 var logs = require('level-logs')
 var events = require('events')
 var inherits = require('inherits')
@@ -57,7 +57,7 @@ var Hyperlog = function (db, opts) {
   var getId = defined(opts.getId, function (cb) {
     db.get(ID, {valueEncoding: 'utf-8'}, function (_, id) {
       if (id) return cb(null, id)
-      id = cuid()
+      id = uuid()
       db.put(ID, id, function () {
         cb(null, id)
       })
@@ -76,7 +76,7 @@ var Hyperlog = function (db, opts) {
       self.changes = Math.max(self.changes, keys && keys.length ? lexint.unpack(keys[0].split('!').pop(), 'hex') : 0)
       if (self.id) return release()
       getId(function (_, id) {
-        self.id = id || cuid()
+        self.id = id || uuid()
         release()
       })
     })
@@ -129,9 +129,15 @@ Hyperlog.prototype.get = function (key, opts, cb) {
   var self = this
   this.db.get(NODES + key, {valueEncoding: 'binary'}, function (err, buf) {
     if (err) return cb(err)
-    var node = messages.Node.decode(buf)
-    node.value = encoder.decode(node.value, opts.valueEncoding || self.valueEncoding)
-    cb(null, node)
+    console.log('buf?', buf)
+
+    if (buf) {
+      var node = messages.Node.decode(buf)
+      node.value = encoder.decode(node.value, opts.valueEncoding || self.valueEncoding)
+      cb(null, node)
+    } else {
+      cb(new Error('Not found'))
+    }
   })
 }
 
