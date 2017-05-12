@@ -129,14 +129,11 @@ Hyperlog.prototype.get = function (key, opts, cb) {
   var self = this
   this.db.get(NODES + key, {valueEncoding: 'binary'}, function (err, buf) {
     if (err) return cb(err)
+    if (!buf) return cb(new Error('NotFound'))
 
-    if (buf) {
-      var node = messages.Node.decode(buf)
-      node.value = encoder.decode(node.value, opts.valueEncoding || self.valueEncoding)
-      cb(null, node)
-    } else {
-      cb(new Error('Not found'))
-    }
+    var node = messages.Node.decode(buf)
+    node.value = encoder.decode(node.value, opts.valueEncoding || self.valueEncoding)
+    cb(null, node)
   })
 }
 
@@ -305,14 +302,21 @@ Hyperlog.prototype.createReplicationStream = function (opts) {
 }
 
 Hyperlog.prototype.add = function (links, value, opts, cb) {
+  var self = this
+  var encoding = opts.valueEncoding || self.valueEncoding
+
   if (typeof opts === 'function') {
     cb = opts
     opts = {}
   }
+
   if (!cb) cb = noop
+
   this.batch([{links: links, value: value}], opts, function (err, nodes) {
-    if (err) cb(err)
-    else cb(null, nodes[0])
+    if (err) return cb(err)
+    var node = nodes[0]
+
+    cb(null, node)
   })
 }
 
@@ -352,6 +356,8 @@ Hyperlog.prototype.batch = function (docs, opts, cb) {
     self.emit('preadd', node)
   })
 
+
+
   waterfall([
     // 3. lock the hyperlog (if needed)
     // 4. wait until the hyperlog is 'ready'
@@ -363,7 +369,6 @@ Hyperlog.prototype.batch = function (docs, opts, cb) {
     function (seq, release, done) {
       lockRelease = release
       latestSeq = seq
-
       hashNodesAndFindLinks(nodes, done)
     },
 
@@ -491,6 +496,7 @@ Hyperlog.prototype.batch = function (docs, opts, cb) {
         if (clone) {
           node.seq = seq + (seqIdx++)
           node.change = clone.change
+          node.value = clone.value
         // It already exists; it was added in this batch op earlier on.
         } else if (added && added[node.key]) {
           node.seq = added[node.key].seq
