@@ -129,7 +129,6 @@ Hyperlog.prototype.get = function (key, opts, cb) {
   var self = this
   this.db.get(NODES + key, {valueEncoding: 'binary'}, function (err, buf) {
     if (err) return cb(err)
-    console.log('buf?', buf)
 
     if (buf) {
       var node = messages.Node.decode(buf)
